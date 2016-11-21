@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Alchemy Test</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <script src="./js/main.js"></script>
+  <script>
+  var counts, averages;
+  document.addEventListener("DOMContentLoaded",function(){
+    $.getJSON( "./facebook.json", function( data ) {
+      console.log(data.result.docs);
+
+// Convert to Data Format:
+
+// [{
+//   date: "20161121",
+//   score: -0.5
+// },{
+//   date: "20161121",
+//   score: -0.25
+// },{
+//   date: "20161120",
+//   score: 0.25
+// }]
+
+      // Format the data so we can use it more easily
+      var results = data.result.docs.map( function(doc) {
+        return {
+          score: doc.source.enriched.url.enrichedTitle.docSentiment.score,
+          date: doc.source.enriched.url.publicationDate.date.substring(0,8)
+        }
+      });
+
+// Convert to Data Format of totals and counts so we can calculate the average:
+
+// {
+//   "20161121": {
+//     total: -0.75,
+//     count: 2
+//   },
+//   "20161120":{
+//     total: 0.25,
+//     count: 1
+//   }
+// }
+
+      // Calculate the count and sum per day
+      // date:
+        // score: (sum of all scores)
+        // count: (number of reviews on that date)
+      counts = results.reduce(function(obj, doc) {
+
+      Object.assign(obj,
+        { [doc.date]: 
+          {
+            total: (obj[doc.date] ? obj[doc.date].total : 0) + doc.score, 
+            count: (obj[doc.date] ? obj[doc.date].count : 0) + 1
+          }
+        })
+       return obj;
+      }, {});
+
+// Convert to average scores per day
+// {
+//   "20161121": -0.325,
+//   "20161120": 0.25
+// }
+
+      averages = Object.keys(counts).reduce( (obj,key) => Object.assign(obj,
+        { [key]:
+          counts[key].total / counts[key].count
+        } ), {} );
+
+      // Investigation of the Output
+      data.result.docs.forEach( function(doc) {
+        $("#console").append(`<li>${doc.source.enriched.url.enrichedTitle.docSentiment.score} / ${doc.source.enriched.url.publicationDate.date}</li>`);
+      });
+    });
+  });
+  </script>
+</head>
+<body>
+  <h1>Alchemy Test</h1>
+  <div id="console">
+  <ol>
+
+  </ol>
+  </div>
+</body>
+</html>
